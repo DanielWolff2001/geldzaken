@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Geldzaken">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0e0e0e" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&display=swap" rel="stylesheet">
+<title>Geldzaken</title>
+<style>
+/* VOICE: rustig, zakelijk, een persoonlijk kasboek dat je in tien seconden bijwerkt
+   IDEA: een Zwitserse dienstregeling — vaste rijen, grote hangende cijfers, harde lijnen
+   PICTURE: het besteedbare bedrag van de maand, groot, met de bijles-teller eronder
+   COLOUR and TYPE: wit, zwart, één grijs; signaalrood alleen voor tekort en achterstand; Archivo breed/zwaar + Archivo
+   LAYOUT: één kolom, dikke bovenlijn per blok, tabbalk onderin binnen de safe area */
+:root{color-scheme:light dark;
+ --bg:light-dark(#ffffff,#0e0e0e);--ink:light-dark(#111111,#f2f2f2);--mut:light-dark(#6b6b6b,#9a9a9a);
+ --line:light-dark(#111111,#f2f2f2);--soft:light-dark(#e6e6e6,#2a2a2a);--field:light-dark(#f4f4f4,#1a1a1a);
+ --red:light-dark(#e4002b,#ff4d6a)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{font:16px/1.5 Archivo,-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;overflow-x:clip;
+ padding:env(safe-area-inset-top) max(16px,env(safe-area-inset-right)) calc(88px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+main{max-width:620px;margin:0 auto}
+h1{font-size:32px;line-height:1.05;font-weight:800;font-stretch:112%;margin:0;text-wrap:balance}
+h2{font-size:17px;font-weight:700;margin:0}
+.top{padding:18px 0 14px}
+.blk{border-top:3px solid var(--line);padding:14px 0 20px}
+.blk.thin{border-top-width:1px}
+.hd{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:8px}
+.mut{color:var(--mut)}.sm{font-size:14px}.red{color:var(--red)}.m0{margin:0}
+.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.big{font-size:clamp(48px,15vw,76px);line-height:1;font-weight:800;font-stretch:118%;letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin:6px 0 4px;white-space:nowrap}
+.monthnav{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;gap:8px;padding:18px 0 14px}
+.monthnav>div{text-align:center}
+.monthnav h1{font-size:28px}
+.pill{display:inline-block;font-size:13px;color:var(--mut);margin-top:2px}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:26px;line-height:1}
+.ib:active{background:var(--soft)}
+.btn{min-height:46px;padding:0 18px;border-radius:10px;font-weight:700;border:1.5px solid var(--line)}
+.btn.pri{background:var(--ink);color:var(--bg)}
+.btn.wide{width:100%}
+.btn.danger{border-color:var(--red);color:var(--red)}
+.link{color:var(--mut);text-decoration:underline;font-size:14px;min-height:44px;padding:0 4px}
+:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:44px;border-bottom:1px solid var(--soft)}
+.row:last-child{border-bottom:0}
+.row .l{flex:1}
+.stepper{display:flex;align-items:center;gap:6px}
+.stepper .ib{border:1.5px solid var(--line);font-size:22px}
+.stepper output{min-width:2.4em;text-align:center;font-size:26px;font-weight:800;font-variant-numeric:tabular-nums}
+input,select{font:inherit;font-size:16px;color:var(--ink);background:var(--field);border:1px solid transparent;border-radius:8px;min-height:44px;padding:0 12px;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--line);outline:0}
+input[type=checkbox]{width:26px;height:26px;min-height:0;accent-color:var(--ink);flex:none}
+.money{position:relative}.money span{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--mut);pointer-events:none}
+.money input{padding-left:28px;text-align:right;font-variant-numeric:tabular-nums}
+.erow{display:grid;grid-template-columns:minmax(0,1fr) 7.5em 32px;gap:8px;align-items:center;padding:4px 0}
+.erow.p{grid-template-columns:minmax(0,1fr) 6.4em 48px 32px}
+.erow .x{width:32px;height:44px;font-size:22px;color:var(--mut)}
+.erow .per{height:44px;border:1.5px solid var(--soft);border-radius:8px;font-size:13px;font-weight:700}
+.erow .per.jr{border-color:var(--line)}
+.erow .pm{grid-column:1/-1;text-align:right;margin:-2px 88px 2px 0}
+.add{color:var(--ink);font-weight:700;min-height:44px;padding:0;font-size:15px}
+.crow{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--soft)}
+.crow:last-child{border-bottom:0}
+.check{display:flex;align-items:center;gap:12px;min-height:56px;flex:1;text-align:left}
+.box{width:26px;height:26px;border:2px solid var(--line);border-radius:6px;display:grid;place-items:center;flex:none}
+.check.on .box{background:var(--ink);color:var(--bg)}
+.check.on .nm b{color:var(--mut);text-decoration:line-through}
+.check .nm{flex:1;line-height:1.25}
+.check .nm b{font-weight:500}
+.amt{min-height:44px;padding:0 4px;text-align:right;line-height:1.2;display:flex;flex-direction:column;justify-content:center;align-items:flex-end}
+.amt .e{font-size:12px;color:var(--mut);display:block}
+.hist{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:10px 0;border-bottom:1px solid var(--soft);width:100%;text-align:left}
+.hist:last-child{border-bottom:0}
+.hist .r{text-align:right}
+.hist .full{grid-column:1/-1}
+.alert{border:2px solid var(--red);border-radius:10px;padding:12px 14px;margin:0 0 16px}
+.alert h2{color:var(--red);margin-bottom:4px}
+.alert button{display:block;text-align:left;min-height:36px;padding:0;width:100%}
+.note{background:var(--field);border-radius:10px;padding:12px 14px;font-size:14px;margin:10px 0}
+.bar{height:12px;background:var(--soft);border-radius:6px;overflow:hidden;margin:10px 0 6px}
+.bar i{display:block;height:100%;background:var(--ink)}
+.seg{display:grid;grid-template-columns:1fr 1fr;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;margin:4px 0 12px}
+.seg button{min-height:42px;font-weight:700}
+.seg button.on{background:var(--ink);color:var(--bg)}
+.form{display:grid;gap:8px}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.item{display:grid;grid-template-columns:minmax(0,1fr) auto 32px;gap:4px 10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--soft)}
+.item:last-child{border-bottom:0}
+.item .x{width:32px;height:40px;font-size:20px;color:var(--mut)}
+.pot{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;width:100%;text-align:left;padding:10px 0;border-bottom:1px solid var(--soft)}
+.pot:last-child{border-bottom:0}
+.pot b.v{font-size:20px;font-weight:800;text-align:right}
+.pot .full{grid-column:1/-1}
+.ybar{display:grid;grid-template-columns:3em minmax(0,1fr) 6.6em;gap:10px;align-items:center;min-height:30px;font-size:14px}
+.ybar .t{height:10px;background:var(--soft);border-radius:5px;overflow:hidden}
+.ybar .t i{display:block;height:100%;background:var(--ink)}
+.ybar .t i.neg{background:var(--red)}
+.ybar .v{text-align:right}
+.empty{color:var(--mut);font-size:14px;padding:6px 0}
+details summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--mut);font-size:14px}
+textarea{font:inherit;font-size:16px;width:100%;min-height:84px;background:var(--field);color:var(--ink);border:1px solid transparent;border-radius:8px;padding:10px 12px;resize:vertical}
+textarea.code{font:13px/1.4 ui-monospace,Menlo,monospace;min-height:120px}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:3px solid var(--line);
+ display:grid;grid-template-columns:repeat(5,1fr);padding:0 max(4px,env(safe-area-inset-right)) env(safe-area-inset-bottom) max(4px,env(safe-area-inset-left));z-index:5}
+nav.tabs button{position:relative;min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;color:var(--mut);font-weight:600}
+nav.tabs button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+nav.tabs button.on{color:var(--ink)}
+nav.tabs button.on::before{content:"";position:absolute;top:-3px;width:28px;height:3px;background:var(--red)}
+.dlg{position:fixed;inset:0;background:rgb(0 0 0/.45);display:grid;place-items:end center;z-index:10;padding:16px 16px calc(16px + env(safe-area-inset-bottom))}
+.dlg>div{background:var(--bg);border-radius:14px;padding:18px;width:100%;max-width:460px}
+.dlg p{margin:6px 0 14px}
+.dlg .money{margin-bottom:12px}
+.dlg .acts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom));background:var(--ink);color:var(--bg);padding:6px 6px 6px 16px;min-height:44px;border-radius:10px;font-size:14px;z-index:11;max-width:92vw;width:max-content;display:flex;align-items:center;gap:8px}
+.toast button{color:var(--bg);font-weight:700;text-decoration:underline;min-height:36px;padding:0 10px;white-space:nowrap}
+.toast:not(:has(button)){padding-right:16px}
+@media (prefers-reduced-motion:no-preference){.toast{animation:up .2s ease-out}@keyframes up{from{opacity:0;translate:0 8px}}}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<nav class="tabs" id="tabs">
+ <button data-tab="maand"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Maand</button>
+ <button data-tab="jaar"><svg viewBox="0 0 24 24"><path d="M5 20V11M12 20V5M19 20v-6"/></svg>Jaar</button>
+ <button data-tab="sparen"><svg viewBox="0 0 24 24"><path d="M6 8h12v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2zM5 5h14v3H5zM10 13h4"/></svg>Sparen</button>
+ <button data-tab="begroting"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Begroting</button>
+ <button data-tab="meer"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>Meer</button>
+</nav>
+<input type="file" id="importFile" accept="application/json,.json" hidden>
+<script>
+{
+const KEY = 'geldzaken-v1';
+const CATS = [
+  ['gezamenlijk', 'Gezamenlijke rekening'],
+  ['algemeen', 'Algemene maandelijkse kosten'],
+  ['abonnement', 'Abonnementen']
+];
+const uid = () => Math.random().toString(36).slice(2, 10);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const eur = new Intl.NumberFormat('nl-NL', {style:'currency', currency:'EUR'});
+const fmt = n => (n < -0.004 ? '−' : '') + eur.format(Math.abs(n || 0));
+const fmtS = n => (n > 0.004 ? '+' : n < -0.004 ? '−' : '') + eur.format(Math.abs(n || 0));
+const num = v => Number(v) || 0;
+const sum = a => a.reduce((t, x) => t + num(x.amount), 0);
+const monthly = it => it.period === 'jaar' ? num(it.amount) / 12 : num(it.amount);
+const msum = a => a.reduce((t, x) => t + monthly(x), 0);
+const todayISO = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
+const monthKey = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+const curKey = () => monthKey(new Date());
+const shiftMonth = (k, n) => { const [y, m] = k.split('-').map(Number); return monthKey(new Date(y, m-1+n, 1)); };
+const lastDay = k => { const [y, m] = k.split('-').map(Number); return k + '-' + String(new Date(y, m, 0).getDate()).padStart(2, '0'); };
+const cap = s => s[0].toUpperCase() + s.slice(1);
+const monthLabel = k => { const [y, m] = k.split('-').map(Number); return cap(new Date(y, m-1, 1).toLocaleDateString('nl-NL', {month:'long', year:'numeric'})); };
+const monthName = k => { const [y, m] = k.split('-').map(Number); return new Date(y, m-1, 1).toLocaleDateString('nl-NL', {month:'long'}); };
+const monthShort = k => { const [y, m] = k.split('-').map(Number); return cap(new Date(y, m-1, 1).toLocaleDateString('nl-NL', {month:'short'}).replace('.', '')); };
+const dateLabel = d => !d ? 'datum onbekend' : new Date(d + 'T12:00').toLocaleDateString('nl-NL', {day:'numeric', month:'short', year:'numeric'});
+function parseAmt(v) {
+  let s = String(v ?? '').trim().replace(/[€\s]/g, '');
+  if (!s) return NaN;
+  if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+  return parseFloat(s);
+}
+const numStr = n => (n == null || isNaN(n)) ? '' : String(Math.round(n*100)/100).replace('.', ',');
+
+/* ---------- opslag ---------- */
+function defaultState() {
+  const spaar = uid();
+  return {
+    version: 2,
+    budget: {
+      income: [
+        {id: uid(), name: 'Baan', amount: 0},
+        {id: uid(), name: 'Bijles', amount: 1000},
+        {id: uid(), name: 'Toeslag 1', amount: 0},
+        {id: uid(), name: 'Toeslag 2', amount: 0}
+      ],
+      expenses: [],
+      transfers: [
+        {id: spaar, name: 'Spaarrekening', amount: 0},
+        {id: uid(), name: 'Vakantiespaar', amount: 0},
+        {id: uid(), name: 'Beleggingsrekening', amount: 0}
+      ]
+    },
+    tutoring: {base: 20, rate: 50, lag: true},
+    repayPot: spaar,
+    pots: {},
+    startCum: 0,
+    months: {},
+    loans: [],
+    repayments: [],
+    withdrawals: [],
+    lastBackup: null
+  };
+}
+function normalize(s) {
+  const d = defaultState();
+  if (!s || typeof s !== 'object') return d;
+  const b = s.budget || {};
+  const out = {
+    ...d, ...s, version: 2,
+    budget: {
+      income: Array.isArray(b.income) ? b.income : d.budget.income,
+      expenses: Array.isArray(b.expenses) ? b.expenses : [],
+      transfers: Array.isArray(b.transfers) ? b.transfers : d.budget.transfers
+    },
+    tutoring: {...d.tutoring, ...(s.tutoring || {})},
+    pots: s.pots && typeof s.pots === 'object' ? s.pots : {},
+    months: s.months && typeof s.months === 'object' ? s.months : {},
+    loans: Array.isArray(s.loans) ? s.loans : [],
+    repayments: Array.isArray(s.repayments) ? s.repayments : [],
+    withdrawals: Array.isArray(s.withdrawals) ? s.withdrawals : []
+  };
+  for (const k in out.months) {
+    const m = out.months[k];
+    m.checks = m.checks || {}; m.amounts = m.amounts || {}; m.note = m.note || '';
+  }
+  const tr = out.budget.transfers;
+  if (!s.repayPot || !tr.some(t => t.id === s.repayPot)) {
+    const guess = tr.find(t => /spaar/i.test(t.name) && !/vakantie/i.test(t.name)) || tr[0];
+    out.repayPot = guess ? guess.id : null;
+  }
+  return out;
+}
+let storageOK = true;
+function load() {
+  try { const raw = localStorage.getItem(KEY); if (raw) return normalize(JSON.parse(raw)); }
+  catch (e) { storageOK = false; }
+  return defaultState();
+}
+let state = load();
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); storageOK = true; }
+  catch (e) { storageOK = false; toast('Opslaan lukt niet in deze browser'); }
+}
+try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
+
+const ui = {tab: 'maand', month: curKey(), year: new Date().getFullYear(), loanMode: 'lening'};
+const app = document.getElementById('app');
+
+/* ---------- berekeningen ---------- */
+function totals(b) {
+  const inc = sum(b.income), exp = msum(b.expenses), tr = sum(b.transfers);
+  const cat = {};
+  CATS.forEach(([k]) => cat[k] = msum(b.expenses.filter(e => e.cat === k)));
+  return {inc, exp, tr, cat, base: inc - exp - tr};
+}
+function snapshot() {
+  const t = totals(state.budget);
+  return {
+    inc: t.inc, exp: t.exp, tr: t.tr, joint: t.cat.gezamenlijk,
+    base: num(state.tutoring.base), rate: num(state.tutoring.rate),
+    transfers: state.budget.transfers.map(x => ({id: x.id, name: x.name, amount: num(x.amount)})),
+    budget: JSON.parse(JSON.stringify(state.budget))
+  };
+}
+const newMonth = () => ({lessons: num(state.tutoring.base), spent: null, checks: {}, amounts: {}, note: '', snap: snapshot()});
+function budgetChanged(m) {
+  const s = snapshot(), o = m.snap, close = (a, b) => Math.abs(a - b) < 0.005;
+  if (!close(s.inc, o.inc) || !close(s.exp, o.exp) || !close(s.base, o.base) || !close(s.rate, o.rate)) return true;
+  return JSON.stringify(s.transfers) !== JSON.stringify(o.transfers);
+}
+const effAmt = (m, t) => m.amounts && m.amounts[t.id] != null ? m.amounts[t.id] : t.amount;
+const trEff = m => m.snap.transfers.reduce((s, t) => s + effAmt(m, t), 0);
+const adj = m => (m.lessons - m.snap.base) * m.snap.rate;
+const spendable = m => m.snap.inc - m.snap.exp - trEff(m) + adj(m);
+function checkItems(m) {
+  return [{key: 'gezamenlijk', name: 'Gezamenlijke rekening', amount: m.snap.joint, fixed: true}]
+    .concat(m.snap.transfers.map(t => ({key: t.id, name: t.name, amount: effAmt(m, t), planned: t.amount,
+      changed: m.amounts[t.id] != null && Math.abs(m.amounts[t.id] - t.amount) > 0.004, repay: t.id === state.repayPot})));
+}
+const sortedKeys = () => Object.keys(state.months).sort();
+function running() {
+  let acc = num(state.startCum); const out = {};
+  for (const k of sortedKeys()) {
+    const m = state.months[k];
+    if (m.spent != null) acc += spendable(m) - m.spent;
+    out[k] = acc;
+  }
+  return out;
+}
+function ensureMonths() {
+  const cur = curKey(), keys = sortedKeys(); let changed = false;
+  if (!keys.length) { state.months[cur] = newMonth(); changed = true; }
+  else {
+    let k = keys[keys.length - 1];
+    while (k < cur) { k = shiftMonth(k, 1); if (!state.months[k]) { state.months[k] = newMonth(); changed = true; } }
+  }
+  if (changed) save();
+  return changed;
+}
+// Lening: alles op volgorde van datum. Een vinkje bij het aflos-potje telt als aflossing (op de laatste dag van die maand).
+function loanCalc() {
+  const ev = [];
+  state.loans.forEach(l => ev.push({d: l.date, loan: true, a: num(l.amount), x: l}));
+  state.repayments.forEach(r => ev.push({d: r.date, a: num(r.amount), x: r, manual: true}));
+  for (const k of sortedKeys()) {
+    const m = state.months[k];
+    if (!state.repayPot || !m.checks[state.repayPot]) continue;
+    const t = m.snap.transfers.find(t => t.id === state.repayPot);
+    if (t) ev.push({d: lastDay(k), a: effAmt(m, t), k});
+  }
+  ev.sort((a, b) => a.d.localeCompare(b.d) || (a.loan ? -1 : b.loan ? 1 : 0));
+  let debt = 0, L = 0, R = 0; const reps = [];
+  for (const e of ev) {
+    if (e.loan) { debt += e.a; L += e.a; continue; }
+    const c = Math.min(debt, e.a); debt -= c; R += c;
+    if (e.manual || c > 0.004) reps.push({...e, counted: c});
+  }
+  return {L, R, open: debt, reps};
+}
+function potCalc() {
+  return state.budget.transfers.map(t => {
+    const start = num(state.pots[t.id] && state.pots[t.id].start);
+    let inn = 0, out = sum(state.withdrawals.filter(w => w.pot === t.id));
+    for (const k of sortedKeys()) {
+      const m = state.months[k];
+      if (!m.checks[t.id]) continue;
+      const st = m.snap.transfers.find(x => x.id === t.id);
+      if (st) inn += effAmt(m, st);
+    }
+    if (t.id === state.repayPot) { out += sum(state.loans); inn += sum(state.repayments); }
+    return {t, start, inn, out, bal: start + inn - out};
+  });
+}
+function yearCalc(y) {
+  const keys = sortedKeys().filter(k => k.startsWith(y + '-'));
+  const r = {keys, n: keys.length, sp: 0, spent: 0, over: 0, nSpent: 0, inc: 0, exp: 0, lessons: 0, lessonAdj: 0, joint: 0, pots: {}, diffs: {}};
+  for (const k of keys) {
+    const m = state.months[k], s = spendable(m);
+    r.sp += s; r.inc += m.snap.inc + adj(m); r.exp += m.snap.exp; r.lessons += m.lessons; r.lessonAdj += adj(m);
+    if (m.spent != null) { r.spent += m.spent; r.over += s - m.spent; r.nSpent++; r.diffs[k] = s - m.spent; }
+    if (m.checks.gezamenlijk) r.joint += m.snap.joint;
+    m.snap.transfers.forEach(t => {
+      const cur = state.budget.transfers.find(x => x.id === t.id);
+      r.pots[t.id] = r.pots[t.id] || {name: cur ? cur.name : t.name, amt: 0};
+      if (m.checks[t.id]) r.pots[t.id].amt += effAmt(m, t);
+    });
+  }
+  const lc = loanCalc();
+  r.loaned = sum(state.loans.filter(l => l.date.startsWith(y + '-')));
+  r.repaid = lc.reps.filter(e => e.d.startsWith(y + '-')).reduce((t, e) => t + e.counted, 0);
+  return r;
+}
+
+/* ---------- dialogen en meldingen ---------- */
+function dialog({title, text, input, okLabel = 'OK', danger, extra}) {
+  return new Promise(res => {
+    const d = document.createElement('div'); d.className = 'dlg';
+    d.innerHTML = `<div role="dialog" aria-modal="true"><h2>${esc(title)}</h2>${text ? `<p class="mut">${esc(text)}</p>` : '<p></p>'}
+      ${input !== undefined ? `<div class="money"><span>€</span><input id="dlg-in" inputmode="decimal" autocomplete="off" value="${numStr(input)}"></div>` : ''}
+      <div class="acts"><button class="btn" data-r="0">Annuleren</button><button class="btn ${danger ? 'danger' : 'pri'}" data-r="1">${esc(okLabel)}</button></div>
+      ${extra ? `<button class="link" data-r="x" style="width:100%;margin-top:6px">${esc(extra)}</button>` : ''}</div>`;
+    const close = v => { d.remove(); res(v); };
+    d.addEventListener('click', e => {
+      const b = e.target.closest('[data-r]');
+      if (e.target === d) return close(null);
+      if (!b) return;
+      if (b.dataset.r === '0') return close(null);
+      if (b.dataset.r === 'x') return close('extra');
+      if (input === undefined) return close(true);
+      const v = parseAmt(d.querySelector('#dlg-in').value);
+      close(isNaN(v) ? null : v);
+    });
+    d.addEventListener('keydown', e => { if (e.key === 'Enter') d.querySelector('[data-r="1"]').click(); });
+    document.body.appendChild(d);
+    const i = d.querySelector('#dlg-in'); if (i) { i.focus(); i.select(); }
+  });
+}
+const ask = (title, text, okLabel, danger) => dialog({title, text, okLabel, danger}).then(v => v === true);
+let toastT;
+function toast(msg, onUndo) {
+  document.querySelector('.toast')?.remove();
+  const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status');
+  const s = document.createElement('span'); s.textContent = msg; t.appendChild(s);
+  if (onUndo) {
+    const b = document.createElement('button'); b.textContent = 'Ongedaan maken';
+    b.addEventListener('click', () => { t.remove(); onUndo(); });
+    t.appendChild(b);
+  }
+  document.body.appendChild(t); clearTimeout(toastT); toastT = setTimeout(() => t.remove(), onUndo ? 6000 : 2400);
+}
+function undoable(msg, fn) {
+  const prev = JSON.stringify(state);
+  fn(); save(); render(true);
+  toast(msg, () => { state = normalize(JSON.parse(prev)); save(); render(true); toast('Hersteld'); });
+}
+
+/* ---------- Maand ---------- */
+function backupBanner() {
+  const hasData = sortedKeys().some(k => state.months[k].spent != null) || state.loans.length;
+  if (!hasData) return '';
+  const last = state.lastBackup ? new Date(state.lastBackup) : null;
+  if (last && (Date.now() - last) / 864e5 < 30) return '';
+  return `<div class="note">${last ? 'Je laatste back-up is van ' + esc(last.toLocaleDateString('nl-NL')) + '.' : 'Je hebt nog geen back-up gemaakt.'}
+    <button class="link" data-a="gotoBackup">Back-up maken</button></div>`;
+}
+function overdue() {
+  const cur = curKey(); const rows = [];
+  for (const k of sortedKeys()) {
+    if (k >= cur) continue;
+    const m = state.months[k];
+    const open = checkItems(m).filter(c => !m.checks[c.key] && c.amount > 0).map(c => c.name);
+    const parts = [];
+    if (open.length) parts.push('nog niet overgemaakt: ' + open.join(', '));
+    if (m.spent == null) parts.push('uitgaven niet ingevuld');
+    if (parts.length) rows.push(`<button data-a="goto" data-k="${k}"><b>${esc(monthLabel(k))}</b> — ${esc(parts.join('; '))}</button>`);
+  }
+  return rows.length ? `<div class="alert"><h2>Achterstand</h2>${rows.join('')}</div>` : '';
+}
+function renderMonth() {
+  const k = ui.month, m = state.months[k], cur = curKey(), isNow = k === cur;
+  let h = `<div class="monthnav"><button class="ib" data-a="prev" aria-label="Vorige maand">‹</button>
+    <div><h1>${esc(monthLabel(k))}</h1>${isNow ? '<span class="pill">Deze maand</span>' : `<button class="pill link" data-a="today">Naar deze maand</button>`}</div>
+    <button class="ib" data-a="next" aria-label="Volgende maand">›</button></div>`;
+  h += backupBanner() + overdue();
+  if (!m) {
+    const t = totals(state.budget);
+    h += `<section class="blk"><p class="mut sm m0">Besteedbaar volgens je huidige begroting</p>
+      <div class="big">${fmt(t.base)}</div>
+      <p class="mut sm">${k > cur ? 'Deze maand start vanzelf op de 1e. Je kunt hem ook nu al starten.' : 'Deze maand staat nog niet in de app. Bij het starten worden de bedragen uit je begroting vastgezet.'}</p>
+      <button class="btn pri wide" data-a="start">Start ${esc(monthLabel(k).toLowerCase())}</button></section>`;
+    return h + renderHistory();
+  }
+  const sp = spendable(m), a = adj(m), cum = running()[k];
+  const diff = m.spent == null ? null : sp - m.spent;
+  const checks = checkItems(m), done = checks.filter(c => m.checks[c.key]).length;
+  const lag = state.tutoring.lag;
+  const lessonsTitle = lag ? `Bijlessen in ${monthName(shiftMonth(k, -1))}` : 'Bijlessen';
+  const lessonsSub = (lag ? `uitbetaald in ${monthName(k)} · ` : '') + `basis ${m.snap.base} · ${fmt(m.snap.rate)} per les`;
+  const lc = state.loans.length ? loanCalc() : null;
+  if (isNow && budgetChanged(m)) h += `<div class="note">Je begroting is aangepast sinds deze maand startte. <button class="link" data-a="reapply">Toepassen op ${esc(monthName(k))}</button></div>`;
+  h += `<section class="blk">
+    <p class="mut sm m0">Besteedbaar</p>
+    <div class="big ${sp < 0 ? 'red' : ''}">${fmt(sp)}</div>
+    <p class="mut sm" style="margin:0 0 12px">${a ? `Basis ${fmt(sp - a)} <span class="num">${a > 0 ? '+' : '−'} ${fmt(Math.abs(a))}</span> bijles` : 'Volgens begroting'}</p>
+    <div class="row"><div class="l"><b>${esc(lessonsTitle)}</b><div class="mut sm">${esc(lessonsSub)}</div></div>
+      <div class="stepper"><button class="ib" data-a="les" data-d="-1" aria-label="Eén les minder">−</button><output>${m.lessons}</output><button class="ib" data-a="les" data-d="1" aria-label="Eén les meer">+</button></div></div>
+  </section>
+  <section class="blk">
+    <div class="hd"><h2>Uitgegeven</h2><span class="mut sm">uit je uitgaven-app</span></div>
+    <div class="money"><span>€</span><input id="spent" inputmode="decimal" autocomplete="off" placeholder="Vul in aan het eind van de maand" value="${numStr(m.spent)}"></div>
+    <div class="row" style="margin-top:6px"><span class="l">Over deze maand</span><b class="num ${diff < 0 ? 'red' : ''}" id="diff">${diff == null ? '–' : fmtS(diff)}</b></div>
+    <div class="row"><span class="l">Cumulatief t/m deze maand</span><b class="num ${cum < 0 ? 'red' : ''}" id="cum">${fmtS(cum)}</b></div>
+  </section>
+  <section class="blk">
+    <div class="hd"><h2>Overgemaakt</h2><span class="mut sm num">${done} van ${checks.length}</span></div>
+    ${checks.map(c => {
+      const on = !!m.checks[c.key];
+      const sub = c.repay && lc && (lc.open > 0.004 || on && lc.reps.some(e => e.k === k)) ? 'telt als aflossing lening' : c.changed ? `begroting ${fmt(c.planned)}` : '';
+      return `<div class="crow"><button class="check ${on ? 'on' : ''}" data-a="chk" data-key="${esc(c.key)}" role="checkbox" aria-checked="${on}">
+        <span class="box">${on ? '✓' : ''}</span><span class="nm"><b>${esc(c.name)}</b>${sub ? `<br><span class="mut sm">${esc(sub)}</span>` : ''}</span></button>
+        ${c.fixed ? `<span class="num mut amt">${fmt(c.amount)}</span>` : `<button class="amt num" data-a="amt" data-key="${esc(c.key)}" aria-label="Bedrag ${esc(c.name)} aanpassen">${fmt(c.amount)}<span class="e">${c.changed ? 'aangepast' : 'wijzig'}</span></button>`}</div>`;
+    }).join('')}
+  </section>
+  <section class="blk thin"><div class="hd"><h2>Notitie</h2></div>
+    <textarea id="note" placeholder="Bijvoorbeeld: veel uitgegeven door de reis">${esc(m.note)}</textarea></section>
+  <details class="blk thin"><summary>Begroting van deze maand</summary>${snapTable(m)}
+    <div style="display:flex;flex-wrap:wrap;gap:4px 12px"><button class="link" data-a="reapply">Huidige begroting toepassen</button><button class="link" data-a="delMonth">Maand leegmaken</button></div></details>`;
+  return h + renderHistory();
+}
+function snapTable(m) {
+  const s = m.snap, r = (l, v) => `<div class="row sm"><span class="l">${esc(l)}</span><span class="num">${v}</span></div>`;
+  return r('Inkomen', fmt(s.inc)) + CATS.map(([k, l]) => r(l, '−' + fmt(msum(s.budget.expenses.filter(e => e.cat === k))))).join('') +
+    r('Overboekingen', '−' + fmt(trEff(m))) + r('Bijles-basis', `${s.base} × ${fmt(s.rate)}`);
+}
+function renderHistory() {
+  const keys = sortedKeys().reverse();
+  if (!keys.length) return '';
+  const run = running();
+  return `<section class="blk"><div class="hd"><h2>Alle maanden</h2><span class="mut sm">cumulatief</span></div>` +
+    keys.map(k => {
+      const m = state.months[k], sp = spendable(m), checks = checkItems(m), done = checks.filter(c => m.checks[c.key]).length;
+      const diff = m.spent == null ? null : sp - m.spent;
+      return `<button class="hist" data-a="goto" data-k="${k}">
+        <b>${esc(monthLabel(k))}</b><b class="r num ${run[k] < 0 ? 'red' : ''}">${fmtS(run[k])}</b>
+        <span class="full mut sm">Besteedbaar <span class="num">${fmt(sp)}</span> · ${m.spent == null ? 'uitgaven nog open' : 'uitgegeven <span class="num">' + fmt(m.spent) + '</span>'}</span>
+        <span class="full sm">${diff == null ? '' : `<span class="num ${diff < 0 ? 'red' : ''}">${fmtS(diff)}</span> deze maand · `}<span class="${done < checks.length ? 'red' : 'mut'}">${done} van ${checks.length} overgemaakt</span>${m.note ? ' · <span class="mut">notitie</span>' : ''}</span></button>`;
+    }).join('') + `</section>`;
+}
+
+/* ---------- Jaar ---------- */
+function renderYear() {
+  const y = ui.year, r = yearCalc(y);
+  let h = `<div class="monthnav"><button class="ib" data-a="yprev" aria-label="Vorig jaar">‹</button><div><h1>${y}</h1></div><button class="ib" data-a="ynext" aria-label="Volgend jaar">›</button></div>`;
+  if (!r.n) return h + `<section class="blk"><p class="empty">Nog geen maanden in ${y}.</p></section>`;
+  const row = (l, v, cls = '') => `<div class="row"><span class="l">${esc(l)}</span><b class="num ${cls}">${v}</b></div>`;
+  const max = Math.max(1, ...Object.values(r.diffs).map(Math.abs));
+  const potRows = Object.values(r.pots);
+  const saved = potRows.reduce((t, p) => t + p.amt, 0);
+  h += `<section class="blk"><p class="mut sm m0">Over in ${y}</p>
+    <div class="big ${r.over < 0 ? 'red' : ''}">${fmtS(r.over)}</div>
+    <p class="mut sm m0">${r.nSpent ? `gemiddeld <span class="num">${fmtS(r.over / r.nSpent)}</span> per maand · ` : ''}${r.nSpent} van ${r.n} maanden met uitgaven ingevuld</p>
+    ${r.nSpent ? `<div style="margin-top:12px">${r.keys.filter(k => k in r.diffs).map(k => {
+      const d = r.diffs[k];
+      return `<div class="ybar"><span>${esc(monthShort(k))}</span><span class="t"><i class="${d < 0 ? 'neg' : ''}" style="width:${Math.abs(d) / max * 100}%"></i></span><span class="v num ${d < 0 ? 'red' : ''}">${fmtS(d)}</span></div>`;
+    }).join('')}</div>` : ''}</section>
+  <section class="blk"><div class="hd"><h2>Inkomen en uitgaven</h2></div>
+    ${row('Inkomen', fmt(r.inc))}${row('Vaste lasten', '−' + fmt(r.exp))}${row('Besteedbaar', fmt(r.sp))}${row('Uitgegeven', fmt(r.spent))}</section>
+  <section class="blk"><div class="hd"><h2>Bijlessen</h2></div>
+    ${row('Lessen in totaal', r.lessons)}${row('Verschil met de basis', fmtS(r.lessonAdj), r.lessonAdj < 0 ? 'red' : '')}</section>
+  <section class="blk"><div class="hd"><h2>Overgemaakt</h2><b class="num">${fmt(saved + r.joint)}</b></div>
+    ${row('Gezamenlijke rekening', fmt(r.joint))}${potRows.map(p => row(p.name, fmt(p.amt))).join('')}</section>
+  <section class="blk"><div class="hd"><h2>Lenen van mezelf</h2></div>
+    ${row('Geleend', fmt(r.loaned))}${row('Terugbetaald', fmt(r.repaid))}</section>`;
+  return h;
+}
+
+/* ---------- Sparen ---------- */
+function renderSave() {
+  const pots = potCalc(), lc = loanCalc(), L = lc.L, R = lc.R, open = lc.open;
+  const pct = L > 0 ? Math.min(100, R / L * 100) : 0;
+  const repayT = state.budget.transfers.find(t => t.id === state.repayPot);
+  // aflosplan: bedrag van deze maand (of begroting), vanaf deze maand als die nog niet is afgevinkt
+  let plan = '';
+  if (open > 0.004 && repayT) {
+    const cm = state.months[curKey()];
+    const st = cm && cm.snap.transfers.find(t => t.id === repayT.id);
+    const per = st ? effAmt(cm, st) : num(repayT.amount);
+    if (per > 0) {
+      const startK = cm && cm.checks[repayT.id] ? shiftMonth(curKey(), 1) : curKey();
+      const end = shiftMonth(startK, Math.ceil(open / per - 1e-9) - 1);
+      plan = `Met ${fmt(per)} per maand ben je in ${monthName(end)} ${end.slice(0, 4)} klaar.`;
+    }
+  }
+  const others = state.budget.transfers.filter(t => t.id !== state.repayPot);
+  const isLoan = ui.loanMode === 'lening';
+  const loanList = state.loans.length ? [...state.loans].sort((a, b) => b.date.localeCompare(a.date)).map(x => `<div class="item">
+      <div><b>${esc(x.desc || 'Lening')}</b><div class="mut sm">${esc(dateLabel(x.date))}</div></div>
+      <b class="num">${fmt(x.amount)}</b><button class="x" data-a="delRow" data-kind="loans" data-id="${esc(x.id)}" aria-label="Verwijderen">×</button></div>`).join('') : `<div class="empty">Nog niets.</div>`;
+  const repList = lc.reps.length ? [...lc.reps].sort((a, b) => b.d.localeCompare(a.d)).map(e => e.manual ? `<div class="item">
+      <div><b>${esc(e.x.desc || 'Extra terugbetaling')}</b><div class="mut sm">${esc(dateLabel(e.d))}</div></div>
+      <b class="num">${fmt(e.a)}</b><button class="x" data-a="delRow" data-kind="repayments" data-id="${esc(e.x.id)}" aria-label="Verwijderen">×</button></div>`
+    : `<div class="item"><div><b>Overboeking ${esc(monthName(e.k))}</b><div class="mut sm">via ${esc(repayT ? repayT.name : 'spaarrekening')}${e.counted < e.a - 0.004 ? ` · ${fmt(e.counted)} van ${fmt(e.a)}` : ''}</div></div>
+      <b class="num">${fmt(e.counted)}</b><button class="x" data-a="goto" data-k="${e.k}" aria-label="Naar ${esc(monthName(e.k))}">›</button></div>`).join('') : `<div class="empty">Nog niets.</div>`;
+  const wd = [...state.withdrawals].sort((a, b) => b.date.localeCompare(a.date));
+  return `<div class="top"><h1>Sparen</h1></div>
+    <section class="blk"><div class="hd"><h2>Potjes</h2><b class="num">${fmt(pots.reduce((t, p) => t + p.bal, 0))}</b></div>
+      ${pots.map(p => `<button class="pot" data-a="potStart" data-id="${esc(p.t.id)}">
+        <b>${esc(p.t.name || 'Naamloos')}</b><b class="v num ${p.bal < 0 ? 'red' : ''}">${fmt(p.bal)}</b>
+        <span class="full mut sm">+${fmt(p.inn)} erin${p.out ? ` · −${fmt(p.out)} eruit` : ''} sinds je startsaldo</span></button>`).join('') || '<p class="empty">Voeg overboekingen toe in je begroting.</p>'}
+      <p class="mut sm">Tik op een potje om het huidige saldo in te vullen. Alleen afgevinkte overboekingen tellen mee. Leningen gaan van ${esc(repayT ? repayT.name : 'je spaarrekening')} af.</p>
+      ${others.length ? `<details><summary>Opname uit een potje</summary><div class="form">
+        <select id="w-pot" aria-label="Potje">${others.map(t => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('')}</select>
+        <div class="two"><input type="date" id="w-date" value="${todayISO()}" aria-label="Datum"><div class="money"><span>€</span><input id="w-amt" inputmode="decimal" placeholder="Bedrag" aria-label="Bedrag"></div></div>
+        <input id="w-desc" placeholder="Waarvoor?" aria-label="Omschrijving">
+        <button class="btn wide" data-a="addW">Opname toevoegen</button></div>
+        ${wd.map(x => { const t = state.budget.transfers.find(t => t.id === x.pot); return `<div class="item">
+          <div><b>${esc(x.desc || 'Opname')}</b><div class="mut sm">${esc(t ? t.name : 'Potje')} · ${esc(dateLabel(x.date))}</div></div>
+          <b class="num">−${fmt(x.amount)}</b><button class="x" data-a="delRow" data-kind="withdrawals" data-id="${esc(x.id)}" aria-label="Verwijderen">×</button></div>`; }).join('')}
+      </details>` : ''}
+    </section>
+    <section class="blk"><div class="hd"><h2>Lenen van mezelf</h2></div>
+      <p class="mut sm m0">Nog terug te betalen</p>
+      <div class="big ${open > 0.004 ? 'red' : ''}">${fmt(open)}</div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <p class="mut sm num m0">${fmt(R)} van ${fmt(L)} terugbetaald</p>
+      ${plan ? `<p class="sm" style="margin:8px 0 0">${esc(plan)}</p>` : L > 0 && open <= 0.004 ? '<p class="sm" style="margin:8px 0 0">Alles is terugbetaald.</p>' : ''}
+      <label class="sm mut" style="display:block;margin-top:12px">Aflossen gaat via
+        <select id="repayPot">${state.budget.transfers.map(t => `<option value="${esc(t.id)}" ${t.id === state.repayPot ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select></label>
+      <p class="mut sm">Elke maand dat je deze overboeking afvinkt, telt het bedrag als aflossing. Het bedrag pas je per maand aan via het Maand-scherm.</p>
+    </section>
+    <section class="blk thin">
+      <div class="seg"><button class="${isLoan ? 'on' : ''}" data-a="mode" data-m="lening">Lening</button><button class="${!isLoan ? 'on' : ''}" data-a="mode" data-m="terug">Extra terugbetaling</button></div>
+      <div class="form">
+        <div class="two"><input type="date" id="f-date" value="${todayISO()}" aria-label="Datum"><div class="money"><span>€</span><input id="f-amt" inputmode="decimal" placeholder="Bedrag" aria-label="Bedrag"></div></div>
+        <input id="f-desc" placeholder="${isLoan ? 'Waarvoor?' : 'Opmerking (optioneel)'}" aria-label="Omschrijving">
+        <button class="btn pri wide" data-a="addLoan">${isLoan ? 'Lening toevoegen' : 'Extra terugbetaling toevoegen'}</button>
+      </div></section>
+    <section class="blk"><div class="hd"><h2>Geleend</h2><b class="num">${fmt(L)}</b></div>${loanList}</section>
+    <section class="blk"><div class="hd"><h2>Terugbetaald</h2><b class="num">${fmt(R)}</b></div>${repList}</section>`;
+}
+
+/* ---------- Begroting ---------- */
+function editRows(list, items, withPeriod) {
+  return items.map(it => {
+    const jr = it.period === 'jaar';
+    return `<div class="erow ${withPeriod ? 'p' : ''}">
+    <input data-list="${list}" data-id="${esc(it.id)}" data-f="name" value="${esc(it.name)}" placeholder="Omschrijving" aria-label="Omschrijving">
+    <div class="money"><span>€</span><input data-list="${list}" data-id="${esc(it.id)}" data-f="amount" inputmode="decimal" value="${numStr(it.amount)}" placeholder="0" aria-label="Bedrag ${jr ? 'per jaar' : 'per maand'}"></div>
+    ${withPeriod ? `<button class="per ${jr ? 'jr' : ''}" data-a="period" data-id="${esc(it.id)}" aria-label="Wissel tussen per maand en per jaar">${jr ? '/jaar' : '/mnd'}</button>` : ''}
+    <button class="x" data-a="delItem" data-list="${list}" data-id="${esc(it.id)}" aria-label="Verwijderen">×</button>
+    ${jr ? `<span class="pm mut sm num" id="pm-${esc(it.id)}">= ${fmt(monthly(it))} per maand</span>` : ''}</div>`;
+  }).join('') || `<div class="empty">Nog niets toegevoegd.</div>`;
+}
+const tuHint = tu => `Zet je bijles-inkomen hierboven op ${tu.base} × ${fmt(tu.rate)} = ${fmt(tu.base * tu.rate)}. Elke les meer of minder telt ${fmt(tu.rate)} mee.`;
+function renderBudget() {
+  const b = state.budget, t = totals(b), tu = state.tutoring;
+  const sect = (title, id, total, list, items, cat, extra = '') => `<section class="blk">
+    <div class="hd"><h2>${title}</h2><b class="num" id="${id}">${fmt(total)}</b></div>${extra}
+    ${editRows(list, items, list === 'expenses')}
+    <button class="add" data-a="addItem" data-list="${list}" ${cat ? `data-cat="${cat}"` : ''}>+ Toevoegen</button></section>`;
+  return `<div class="top"><h1>Begroting</h1></div>
+    <section class="blk">
+      <p class="mut sm m0">Besteedbaar per maand bij ${tu.base} bijlessen</p>
+      <div class="big ${t.base < 0 ? 'red' : ''}" id="s-base">${fmt(t.base)}</div>
+      <div class="row sm"><span class="l">Inkomen</span><span class="num" id="s-inc">${fmt(t.inc)}</span></div>
+      <div class="row sm"><span class="l">Vaste lasten</span><span class="num" id="s-exp">−${fmt(t.exp)}</span></div>
+      <div class="row sm"><span class="l">Overboekingen</span><span class="num" id="s-tr">−${fmt(t.tr)}</span></div>
+      <div class="note">Een nieuwe maand neemt deze begroting over. Gestarte maanden houden hun eigen bedragen. Voor de lopende maand vraagt de app of je de wijziging wilt toepassen.</div>
+    </section>
+    ${sect('Inkomen', 't-income', t.inc, 'income', b.income)}
+    ${CATS.map(([k, l]) => sect(l, 't-' + k, t.cat[k], 'expenses', b.expenses.filter(e => e.cat === k), k,
+      k === 'abonnement' ? '<p class="mut sm m0" style="margin-bottom:6px">Tik op /mnd om een jaarbedrag in te vullen; de app rekent het om naar per maand.</p>' : '')).join('')}
+    ${sect('Overboekingen', 't-transfers', t.tr, 'transfers', b.transfers)}
+    <section class="blk">
+      <div class="hd"><h2>Bijles</h2></div>
+      <div class="two"><label class="sm mut">Basis lessen per maand<input data-tu="base" inputmode="numeric" value="${tu.base}"></label>
+      <label class="sm mut">Netto per les<div class="money"><span>€</span><input data-tu="rate" inputmode="decimal" value="${numStr(tu.rate)}"></div></label></div>
+      <p class="mut sm" id="tu-hint">${esc(tuHint(tu))}</p>
+      <label class="row" style="gap:14px"><span class="l">Lessen van de vorige maand opgeven<br><span class="mut sm">Je krijgt ze de maand erna uitbetaald, dus je weet je besteedbaar bedrag meteen op de 1e.</span></span>
+        <input type="checkbox" id="lag" ${tu.lag ? 'checked' : ''}></label>
+    </section>`;
+}
+function updateBudgetTotals() {
+  const t = totals(state.budget), set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  set('s-base', fmt(t.base)); set('s-inc', fmt(t.inc)); set('s-exp', '−' + fmt(t.exp)); set('s-tr', '−' + fmt(t.tr));
+  set('t-income', fmt(t.inc)); set('t-transfers', fmt(t.tr)); CATS.forEach(([k]) => set('t-' + k, fmt(t.cat[k])));
+  document.getElementById('s-base')?.classList.toggle('red', t.base < 0);
+  state.budget.expenses.forEach(e => { if (e.period === 'jaar') set('pm-' + e.id, `= ${fmt(monthly(e))} per maand`); });
+  set('tu-hint', tuHint(state.tutoring));
+}
+
+/* ---------- Meer ---------- */
+function renderMore() {
+  const last = state.lastBackup ? new Date(state.lastBackup).toLocaleDateString('nl-NL') : 'nog nooit';
+  return `<div class="top"><h1>Meer</h1></div>
+    <section class="blk" id="backup"><div class="hd"><h2>Back-up</h2><span class="mut sm">laatste: ${esc(last)}</span></div>
+      <p class="sm mut">Je gegevens staan alleen op deze telefoon. Maak af en toe een back-up en bewaar die in Bestanden of iCloud Drive.</p>
+      ${storageOK ? '' : '<p class="sm red">Deze browser bewaart niets. Open de app vanaf je beginscherm.</p>'}
+      <div class="form"><button class="btn pri wide" data-a="export">Back-up exporteren</button>
+      <button class="btn wide" data-a="import">Back-up importeren</button></div>
+      <details><summary>Back-up als tekst kopiëren of plakken</summary>
+        <textarea class="code" id="bk-text" spellcheck="false" placeholder="Plak hier een back-up"></textarea>
+        <div class="two" style="margin-top:8px"><button class="btn" data-a="copyBk">Kopieer huidige</button><button class="btn" data-a="pasteBk">Zet geplakte terug</button></div>
+      </details></section>
+    <section class="blk"><div class="hd"><h2>Beginstand cumulatief</h2></div>
+      <p class="sm mut">Overschot of tekort van vóór je eerste maand in de app.</p>
+      <div class="money"><span>€</span><input id="startCum" inputmode="decimal" value="${numStr(state.startCum)}" placeholder="0"></div></section>
+    <section class="blk"><div class="hd"><h2>Op je iPhone zetten</h2></div>
+      <p class="sm mut">Open deze pagina in Safari, tik op Deel en kies ‘Zet op beginscherm’. Open de app daarna altijd via dat icoon: dan werkt hij offline en blijven je gegevens bewaard. Verwijder je het icoon, dan gaan je gegevens mee — maak dus eerst een back-up.</p></section>
+    <section class="blk"><div class="hd"><h2>Alles wissen</h2></div>
+      <p class="sm mut">Verwijdert alle maanden, je begroting, potjes en leningen van deze telefoon.</p>
+      <button class="btn danger wide" data-a="wipe">Alles wissen</button></section>`;
+}
+
+/* ---------- render ---------- */
+function render(keepScroll) {
+  const y = window.scrollY;
+  const views = {maand: renderMonth, jaar: renderYear, sparen: renderSave, begroting: renderBudget, meer: renderMore};
+  app.innerHTML = views[ui.tab]();
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === ui.tab));
+  window.scrollTo(0, keepScroll ? y : 0);
+}
+
+/* ---------- back-up ---------- */
+const backupName = () => `geldzaken-backup-${todayISO()}.json`;
+function markBackup() { state.lastBackup = new Date().toISOString(); save(); }
+async function doExport() {
+  const json = JSON.stringify(state, null, 2);
+  const file = new File([json], backupName(), {type: 'application/json'});
+  try {
+    if (navigator.canShare && navigator.canShare({files: [file]})) {
+      await navigator.share({files: [file], title: 'Geldzaken back-up'});
+      markBackup(); render(true); toast('Back-up gedeeld'); return;
+    }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  try {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = backupName();
+    document.body.appendChild(a); a.click(); a.remove();
+    markBackup(); render(true); toast('Back-up gedownload');
+  } catch (e) { toast('Exporteren lukt hier niet — gebruik ‘als tekst kopiëren’'); }
+}
+async function restore(text) {
+  let data;
+  try { data = JSON.parse(text); } catch (e) { toast('Dit is geen geldige back-up'); return; }
+  if (!data || !data.budget || !data.months) { toast('Dit is geen geldige back-up'); return; }
+  if (!await ask('Back-up terugzetten?', 'Alles wat nu in de app staat wordt vervangen door de back-up.', 'Terugzetten', true)) return;
+  state = normalize(data); ensureMonths(); save(); ui.tab = 'maand'; ui.month = curKey(); render(); toast('Back-up teruggezet');
+}
+
+/* ---------- events ---------- */
+document.getElementById('tabs').addEventListener('click', e => {
+  const b = e.target.closest('[data-tab]'); if (!b) return;
+  ui.tab = b.dataset.tab; render();
+});
+const fileIn = document.getElementById('importFile');
+fileIn.addEventListener('change', () => {
+  const f = fileIn.files[0]; if (!f) return;
+  const r = new FileReader(); r.onload = () => restore(r.result); r.readAsText(f); fileIn.value = '';
+});
+function addRow(kind, dateId, amtId, descId, extra) {
+  const amt = parseAmt(document.getElementById(amtId).value);
+  if (!(amt > 0)) { toast('Vul een bedrag in'); return false; }
+  state[kind].push({id: uid(), date: document.getElementById(dateId).value || todayISO(), amount: Math.round(amt*100)/100,
+    desc: document.getElementById(descId).value.trim(), ...extra});
+  save(); render(true); return true;
+}
+
+app.addEventListener('click', async e => {
+  const b = e.target.closest('[data-a]'); if (!b) return;
+  const a = b.dataset.a, m = state.months[ui.month];
+  switch (a) {
+    case 'prev': ui.month = shiftMonth(ui.month, -1); render(); break;
+    case 'next': ui.month = shiftMonth(ui.month, 1); render(); break;
+    case 'today': ui.month = curKey(); render(); break;
+    case 'yprev': ui.year--; render(); break;
+    case 'ynext': ui.year++; render(); break;
+    case 'goto': ui.tab = 'maand'; ui.month = b.dataset.k; render(); break;
+    case 'gotoBackup': ui.tab = 'meer'; render(); document.getElementById('backup')?.scrollIntoView(); break;
+    case 'start': state.months[ui.month] = newMonth(); save(); render(); break;
+    case 'les': m.lessons = Math.max(0, m.lessons + Number(b.dataset.d)); save(); render(true); break;
+    case 'chk': m.checks[b.dataset.key] = !m.checks[b.dataset.key]; save(); render(true); break;
+    case 'amt': {
+      const t = m.snap.transfers.find(t => t.id === b.dataset.key); if (!t) break;
+      const changed = m.amounts[t.id] != null;
+      const v = await dialog({title: `${t.name} in ${monthName(ui.month)}`, text: 'Alleen voor deze maand. Je besteedbaar bedrag past zich aan.',
+        input: effAmt(m, t), okLabel: 'Opslaan', extra: changed ? `Terug naar begroting (${fmt(t.amount)})` : null});
+      if (v === 'extra') delete m.amounts[t.id];
+      else if (typeof v === 'number' && v >= 0) { if (Math.abs(v - t.amount) < 0.005) delete m.amounts[t.id]; else m.amounts[t.id] = Math.round(v*100)/100; }
+      else break;
+      save(); render(true); break;
+    }
+    case 'reapply':
+      if (await ask('Huidige begroting toepassen?', `De bedragen van ${monthName(ui.month)} worden vervangen door je huidige begroting. Bijlessen, uitgaven, vinkjes en notitie blijven staan.`, 'Toepassen')) {
+        m.snap = snapshot(); save(); render(true); toast('Begroting toegepast');
+      } break;
+    case 'delMonth': {
+      const k = ui.month;
+      undoable(`${cap(monthName(k))} leeggemaakt`, () => { delete state.months[k]; });
+      break;
+    }
+    case 'addItem': {
+      const it = {id: uid(), name: '', amount: 0}; if (b.dataset.cat) it.cat = b.dataset.cat;
+      state.budget[b.dataset.list].push(it); save(); render(true);
+      document.querySelector(`input[data-id="${it.id}"][data-f="name"]`)?.focus(); break;
+    }
+    case 'delItem': {
+      const list = b.dataset.list, id = b.dataset.id, it = state.budget[list].find(x => x.id === id);
+      undoable(`‘${(it && it.name) || 'Regel'}’ verwijderd`, () => {
+        state.budget[list] = state.budget[list].filter(x => x.id !== id);
+        if (list === 'transfers' && state.repayPot === id) state.repayPot = state.budget.transfers[0]?.id || null;
+      });
+      break;
+    }
+    case 'period': {
+      const it = state.budget.expenses.find(x => x.id === b.dataset.id); if (!it) break;
+      it.period = it.period === 'jaar' ? 'maand' : 'jaar';
+      save(); render(true); break;
+    }
+    case 'potStart': {
+      const id = b.dataset.id, t = state.budget.transfers.find(t => t.id === id);
+      const p = potCalc().find(p => p.t.id === id);
+      const v = await dialog({title: `Saldo ${t.name}`, text: 'Wat staat er nu op? De app rekent vanaf hier verder met je overboekingen, opnames en leningen.',
+        input: Math.round(p.bal * 100) / 100, okLabel: 'Opslaan'});
+      if (typeof v === 'number') { state.pots[id] = {...(state.pots[id] || {}), start: Math.round((v - p.inn + p.out) * 100) / 100}; save(); render(true); toast('Saldo bijgewerkt'); }
+      break;
+    }
+    case 'addW':
+      if (addRow('withdrawals', 'w-date', 'w-amt', 'w-desc', {pot: document.getElementById('w-pot').value})) {
+        document.querySelector('details')?.setAttribute('open', ''); toast('Opname toegevoegd');
+      } break;
+    case 'mode': ui.loanMode = b.dataset.m; render(true); break;
+    case 'addLoan':
+      if (addRow(ui.loanMode === 'lening' ? 'loans' : 'repayments', 'f-date', 'f-amt', 'f-desc'))
+        toast(ui.loanMode === 'lening' ? 'Lening toegevoegd' : 'Terugbetaling toegevoegd');
+      break;
+    case 'delRow': {
+      const kind = b.dataset.kind, id = b.dataset.id;
+      const reopen = kind === 'withdrawals';
+      undoable('Regel verwijderd', () => { state[kind] = state[kind].filter(x => x.id !== id); });
+      if (reopen) document.querySelector('details')?.setAttribute('open', '');
+      break;
+    }
+    case 'export': doExport(); break;
+    case 'import': fileIn.click(); break;
+    case 'copyBk': {
+      const t = JSON.stringify(state); const ta = document.getElementById('bk-text'); ta.value = t;
+      try { await navigator.clipboard.writeText(t); markBackup(); toast('Gekopieerd — plak het in een notitie of bestand'); }
+      catch (err) { ta.select(); toast('Selecteer de tekst en kopieer hem zelf'); }
+      break;
+    }
+    case 'pasteBk': restore(document.getElementById('bk-text').value); break;
+    case 'wipe':
+      if (await ask('Alles wissen?', 'Dit kan niet ongedaan worden gemaakt. Maak eerst een back-up als je twijfelt.', 'Alles wissen', true)) {
+        state = defaultState(); ensureMonths(); save(); ui.tab = 'maand'; ui.month = curKey(); render(); toast('Alles gewist');
+      } break;
+  }
+});
+
+app.addEventListener('input', e => {
+  const el = e.target;
+  if (el.dataset.f) {
+    const it = state.budget[el.dataset.list].find(x => x.id === el.dataset.id); if (!it) return;
+    if (el.dataset.f === 'name') it.name = el.value;
+    else { const v = parseAmt(el.value); it.amount = isNaN(v) ? 0 : v; }
+    save(); updateBudgetTotals();
+  } else if (el.dataset.tu) {
+    const v = parseAmt(el.value); if (!isNaN(v) && v >= 0) { state.tutoring[el.dataset.tu] = v; save(); updateBudgetTotals(); }
+  } else if (el.id === 'spent') {
+    const m = state.months[ui.month], v = parseAmt(el.value);
+    m.spent = isNaN(v) ? null : v; save();
+    const diff = m.spent == null ? null : spendable(m) - m.spent, cum = running()[ui.month];
+    const d = document.getElementById('diff'), c = document.getElementById('cum');
+    d.textContent = diff == null ? '–' : fmtS(diff); d.classList.toggle('red', diff < 0);
+    c.textContent = fmtS(cum); c.classList.toggle('red', cum < 0);
+  } else if (el.id === 'note') {
+    state.months[ui.month].note = el.value; save();
+  } else if (el.id === 'startCum') {
+    const v = parseAmt(el.value); state.startCum = isNaN(v) ? 0 : v; save();
+  }
+});
+app.addEventListener('change', e => {
+  const el = e.target;
+  if (el.id === 'spent') render(true);
+  else if (el.id === 'repayPot') { state.repayPot = el.value; save(); render(true); }
+  else if (el.id === 'lag') { state.tutoring.lag = el.checked; save(); }
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  const wasCurrent = ui.month;
+  if (ensureMonths()) { if (wasCurrent < curKey()) ui.month = curKey(); render(true); }
+});
+
+ensureMonths();
+render();
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  try { navigator.serviceWorker.register('sw.js').catch(() => {}); } catch (e) {}
+}
+}
+</script>
+</body>
+</html>
